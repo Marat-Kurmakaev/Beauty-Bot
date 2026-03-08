@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -15,8 +16,11 @@ from app.routers.start import router as start_router
 async def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
-    await db.connect(settings.database_dsn)
-    await db.init_schema()
+    if settings.database_enabled:
+        await db.connect(settings.database_dsn)
+        await db.init_schema()
+    else:
+        logging.warning("Database is disabled. Booking and admin request flows will be unavailable.")
 
     bot = Bot(
         token=settings.token,
@@ -32,9 +36,12 @@ async def main() -> None:
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
-        await db.close()
+        if settings.database_enabled:
+            await db.close()
         await bot.session.close()
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

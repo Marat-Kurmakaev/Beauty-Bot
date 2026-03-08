@@ -15,7 +15,14 @@ def _status_label(status: str) -> str:
     }
     return labels.get(status, status)
 
+
 router = Router()
+
+
+DB_DISABLED_TEXT = (
+    "\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u0430. "
+    "\u0410\u0434\u043c\u0438\u043d-\u0444\u0443\u043d\u043a\u0446\u0438\u0438 \u0437\u0430\u044f\u0432\u043e\u043a \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b."
+)
 
 
 def _is_admin(user_id: int) -> bool:
@@ -26,6 +33,10 @@ def _is_admin(user_id: int) -> bool:
 async def cmd_pending(message: Message) -> None:
     if message.from_user is None or not _is_admin(message.from_user.id):
         await message.answer("\u041a\u043e\u043c\u0430\u043d\u0434\u0430 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0442\u043e\u043b\u044c\u043a\u043e \u0430\u0434\u043c\u0438\u043d\u0443.")
+        return
+
+    if not settings.database_enabled:
+        await message.answer(DB_DISABLED_TEXT)
         return
 
     rows = await db.get_pending_requests()
@@ -44,6 +55,10 @@ async def cmd_pending(message: Message) -> None:
 async def process_request_decision(callback: CallbackQuery) -> None:
     if callback.from_user is None or not _is_admin(callback.from_user.id):
         await callback.answer("\u041d\u0435\u0442 \u043f\u0440\u0430\u0432 \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f.", show_alert=True)
+        return
+
+    if not settings.database_enabled:
+        await callback.answer(DB_DISABLED_TEXT, show_alert=True)
         return
 
     raw_data = callback.data or ""

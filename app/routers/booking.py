@@ -21,9 +21,20 @@ from app.texts import (
 router = Router()
 
 
+DB_DISABLED_TEXT = (
+    "\u0420\u0435\u0436\u0438\u043c \u0437\u0430\u043f\u0438\u0441\u0438 \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d. "
+    "\u0411\u043e\u0442 \u0437\u0430\u043f\u0443\u0449\u0435\u043d \u0431\u0435\u0437 \u0431\u0430\u0437\u044b \u0434\u0430\u043d\u043d\u044b\u0445."
+)
+
+
 @router.message(Command("book"))
 @router.message(F.text == "\u0417\u0430\u043f\u0438\u0441\u0430\u0442\u044c\u0441\u044f")
 async def start_booking(message: Message, state: FSMContext) -> None:
+    if not settings.database_enabled:
+        await state.clear()
+        await message.answer(DB_DISABLED_TEXT, reply_markup=main_menu_keyboard())
+        return
+
     await state.clear()
     await state.set_state(BookingStates.full_name)
     await message.answer(ASK_FULL_NAME)
@@ -71,6 +82,11 @@ async def booking_preferred_time(message: Message, state: FSMContext) -> None:
 
 @router.message(BookingStates.comment)
 async def booking_comment(message: Message, state: FSMContext) -> None:
+    if not settings.database_enabled:
+        await state.clear()
+        await message.answer(DB_DISABLED_TEXT, reply_markup=main_menu_keyboard())
+        return
+
     comment_text = (message.text or "").strip()
     comment = "" if comment_text == "\u041f\u0440\u043e\u043f\u0443\u0441\u0442\u0438\u0442\u044c" else comment_text
     await state.update_data(comment=comment)
